@@ -1,0 +1,9 @@
+[ec-dev-hosts]
+172.31.15.122
+
+[ec-dev-hosts:vars]
+ansible_username=cloudops
+#ansible_connection=ssh
+ansible_password=cloudops
+script_path=/home/install/bin/kernelcare
+sh_script=patch.sh

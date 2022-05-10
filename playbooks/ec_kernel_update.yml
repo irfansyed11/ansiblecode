@@ -1,0 +1,17 @@
+---
+
+- hosts: ec-dev-hosts
+  gather_facts: false
+  become: yes
+  #become_user: cloudops
+  #become_method: sudo
+  #remote_user: cloudops
+  tasks:
+  - name: Block for ec-dev kernel update
+    block:
+    - include_role:
+        name: ../roles/update_kernel
+    #ignore_errors: true
+    rescue:
+      - set_fact:
+          statusMessage: "failed"

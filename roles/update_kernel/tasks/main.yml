@@ -1,0 +1,12 @@
+---
+- name: run shell script patch.sh
+  #shell: "rm -rf {{ablangularPath}}/*"
+  command: "{{ script_path }}/{{ sh_script }}"
+  become: true
+  #script: "{{ script_path }}/{{ sh_script }}"
+  register: script_output
+
+
+- name: output of script execution
+  debug:
+    msg: "{{ script_output }}"

@@ -1,0 +1,14 @@
+---
+
+- hosts: gh-dev-hosts
+  gather_facts: false
+  #remote_user: cloudops
+  tasks:
+  - name: Block for gh-dev kernel update
+    block:
+    - include_role:
+        name: ../roles/update_kernel
+    #ignore_errors: true
+    rescue:
+      - set_fact:
+          statusMessage: "failed"

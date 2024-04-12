@@ -1,0 +1,115 @@
+---
+source_repo_server: "nexus.allegiantair.com:8443"
+source_jboss_wars_uri: /content/repositories
+env_has_appd: False
+instance:
+  artifacts:
+    - example_web
+  jvm:
+    id: "standalone_default"
+    deployment-path: "standalone_default"
+    port_offset: 0
+    memory:
+      heap: 2g
+      max_heap: 2g
+    extensions:
+      - org.jboss.as.clustering.infinispan
+      - org.jboss.as.connector
+      - org.jboss.as.deployment-scanner
+      - org.jboss.as.ee
+      - org.jboss.as.ejb3
+      - org.jboss.as.jaxrs
+      - org.jboss.as.jdr
+      - org.jboss.as.jmx
+      - org.jboss.as.jpa
+      - org.jboss.as.jsf
+      - org.jboss.as.logging
+      - org.jboss.as.mail
+      - org.jboss.as.naming
+      - org.jboss.as.pojo
+      - org.jboss.as.remoting
+      - org.jboss.as.sar
+      - org.jboss.as.security
+      - org.jboss.as.threads
+      - org.jboss.as.transactions
+      - org.jboss.as.web
+      - org.jboss.as.webservices
+      - org.jboss.as.weld
+    modules: []
+    subsystems:
+      datasources:
+        standalone_default_otaxa:
+          enabled: "true"
+          type: datasource
+          jndi: java:/datasource/standalone_default/h2
+          pool_name: standalone_default-h2
+          connection_url: >-
+            jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+          pool_size:
+            min: 2
+            max: 15
+          username: sa
+          password: sa
+          driver: h2
+      ds_drivers:
+        h2:
+          name: h2
+          module: com.h2database.h2
+          xa_datasource_class: org.h2.jdbcx.JdbcDataSource
+      logging:
+        loggers:
+          com.arjuna: INFO
+          org.apache.tomcat.util.modeler: WARN
+          org.jboss.as.config: DEBUG
+          sun.rmi: WARN
+          jacorb: WARN
+          jacorb.config: ERROR
+        handlers:
+          CONSOLE: >
+                <console-handler name="CONSOLE">
+                    <level name="WARN"/>
+                    <formatter>
+                        <named-formatter name="PATTERN"/>
+                    </formatter>
+                </console-handler>
+          FILE: >
+                <periodic-rotating-file-handler name="FILE" autoflush="true">
+                    <formatter>
+                        <named-formatter name="PATTERN"/>
+                    </formatter>
+                    <file relative-to="jboss.server.log.dir" path="server.log"/>
+                    <suffix value=".yyyy-MM-dd"/>
+                    <append value="true"/>
+                </periodic-rotating-file-handler>
+
+system_properties:
+  turn_up_the_ansible:
+    name: turn-up-the-ansible
+    value: "True"
+  power_level:
+    name: power.level
+    value: infinite
+
+jboss_app_info:
+  example_web:
+    artifact_id: example-web
+    repository: devops
+    group_id: allegiant-commons
+
+jboss_wars:
+  example_web:
+    deploy_version: "1.6"
+
+sumo_time_zone:
+  PDT: "America/Los_Angeles"
+  PST: "America/Los_Angeles"
+  MDT: "America/Denver"
+  MST: "America/Denver"
+  CDT: "America/Chicago"
+  CST: "America/Chicago"
+  EDT: "America/New_York"
+  EST: "America/New_York"
+  GMT: "GMT"
+  UTC: "UTC"
+
+...

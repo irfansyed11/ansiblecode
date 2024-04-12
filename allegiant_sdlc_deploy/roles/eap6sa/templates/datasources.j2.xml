@@ -1,0 +1,124 @@
+{% set datasources = [] %}
+{% set drivers=[] %}
+{% for artifact in instance.artifacts %}
+{% if jboss_app_info[artifact | replace('-','_') ]['datasources'] is defined %}
+{% for ds_ref in jboss_app_info[ artifact | replace('-','_') ]['datasources'] if ds_ref not in datasources %}
+{# the syntax in the next line makes sense only to programmers :) #}
+{% if datasources.append(ds_ref) %}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% for ds_name in datasources %}
+{% set ds = jboss_datasources[ds_name] %}
+{% if drivers.append(ds.driver) %}
+{% endif %}
+{% if ds.type == 'xa-datasource' %}
+                <xa-datasource jndi-name="{{ ds.jndi }}" pool-name="{{ ds.pool_name }}" enabled="{{ ds.enabled | default('false') }}" statistics-enabled="{{ ds.statistics_enabled | default('true') }}">
+{# db2 only #}
+{% if ds.current_schema is defined %}
+                    <xa-datasource-property name="CurrentSchema">
+                        {{ ds.current_schema }}
+                    </xa-datasource-property>
+{% endif %}
+                    <xa-datasource-property name="DatabaseName">
+                        {{ ds.database_name }}
+                    </xa-datasource-property>
+                    <xa-datasource-property name="ServerName">
+                        {{ ds.server_name }}
+                    </xa-datasource-property>
+                    <xa-datasource-property name="PortNumber">
+                        {{ ds.port_number }}
+                    </xa-datasource-property>
+{# db2 only #}
+{% if ds.driver_type is defined %}
+                    <xa-datasource-property name="DriverType">
+                        {{ ds.driver_type }}
+                    </xa-datasource-property>
+{% endif %}
+                    <xa-datasource-class>{{ ds.xa_datasource_class }}</xa-datasource-class>
+                    <driver>{{ ds.driver }}</driver>
+                    <transaction-isolation>{{ ds.transaction_isolation | default('TRANSACTION_READ_COMMITTED') }}</transaction-isolation>
+                    <xa-pool>
+                        <min-pool-size>{{ ds.pool_size.min }}</min-pool-size>
+                        <max-pool-size>{{ ds.pool_size.max }}</max-pool-size>
+                        <interleaving>{{ ds.pool_interleaving | default('false') }}</interleaving>
+                        <pad-xid>{{ ds.pool_pad_xid | default('false') }}</pad-xid>
+                        <wrap-xa-resource>{{ ds.pool_wrap_xa_resource | default('false') }}</wrap-xa-resource>
+                    </xa-pool>
+                    <security>
+                        <user-name>{{ ds.username }}</user-name>
+                        <password>{{ ds.password }}</password>
+                    </security>
+                    <validation>
+                        <valid-connection-checker class-name="{{ ds.validation.valid_connection_checker }}"/>
+                        <validate-on-match>{{ ds.validation.validate_on_match | default('false') }}</validate-on-match>
+                        <background-validation>{{ ds.validation.background_validation | default('false') }}</background-validation>
+                        <use-fast-fail>{{ ds.validation.use_fast_fail | default('false') }}</use-fast-fail>
+{# db2 only #}
+{% if ds.validation.stale_connection_checker is defined %}
+                        <stale-connection-checker class-name="{{ ds.validation.stale_connection_checker }}"/>
+{% endif %}
+                        <exception-sorter class-name="{{ ds.validation.exception_sorter }}"/>
+                    </validation>
+                    <statement>
+                        <share-prepared-statements>{{ ds.share_prepared_statements | default('false') }}</share-prepared-statements>
+                    </statement>
+                </xa-datasource>
+{% elif ds.type == 'datasource' %}
+                <datasource jta="{{ ds.jta | default('false') }}" jndi-name="{{ ds.jndi }}" pool-name="{{ ds.pool_name }}" enabled="{{ ds.enabled | default('false') }}" use-ccm="{{ ds.use_ccm | default('true') }}" statistics-enabled="{{ ds.statistics_enabled | default('true') }}">
+                    <connection-url>{{ ds.connection_url }}</connection-url>
+                    <driver>{{ ds.driver }}</driver>
+                    <transaction-isolation>{{ ds.transaction_isolation | default('TRANSACTION_READ_COMMITTED') }}</transaction-isolation>
+                    <pool>
+                        <min-pool-size>{{ ds.pool_size.min }}</min-pool-size>
+                        <max-pool-size>{{ ds.pool_size.max }}</max-pool-size>
+                        <flush-strategy>{{ ds.pool_flush_strategy | default('FailingConnectionOnly') }}</flush-strategy>
+                    </pool>
+                    <security>
+                        <user-name>{{ ds.username }}</user-name>
+                        <password>{{ ds.password }}</password>
+                    </security>
+                    <validation>
+                        <background-validation>{{ ds.validation.background_validation | default('false') }}</background-validation>
+{% if ds.validation.valid_connection_checker is defined %}
+                        <valid-connection-checker class-name="{{ ds.validation.valid_connection_checker }}"/>
+{% endif %}
+{% if ds.validation.stale_connection_checker is defined %}
+                        <stale-connection-checker class-name="{{ ds.validation.stale_connection_checker }}"/>
+{% endif %}
+{% if ds.validation.exception_sorter is defined %}
+                        <exception-sorter class-name="{{ ds.validation.exception_sorter }}"/>
+{% endif %}
+{# miscrosoft sql options #}
+{% if ds.validation.check_valid_connection_sql is defined %}
+                        <check-valid-connection-sql>{{ ds.validation.check_valid_connection_sql }}</check-valid-connection-sql>
+{% endif %}
+{% if ds.validation.background_validation_millis is defined %}
+                        <background-validation-millis>{{ ds.validation.background_validation_millis }}</background-validation-millis>
+{% endif %}
+                    </validation>
+                </datasource>
+
+{% endif %}
+{% endfor %}
+                <drivers>
+{% if 'mysql' in drivers %}
+                    <driver name="mysql" module="com.mysql.connectorj">
+                        <driver-class>com.mysql.jdbc.Driver</driver-class>
+                        <xa-datasource-class>com.mysql.jdbc.jdbc2.optional.MysqlXADataSource</xa-datasource-class>
+                    </driver>
+{% endif %}
+{% if 'db2' in drivers %}
+                    <driver name="db2" module="com.ibm.db2">
+                        <driver-class>com.ibm.db2.jcc.DB2Driver</driver-class>
+                    </driver>
+{% endif %}
+{% if 'sqlserver' in drivers %}
+                    <driver name="sqlserver" module="com.microsoft.sqlserver">
+                        <driver-class>com.microsoft.sqlserver.jdbc.SQLServerDriver</driver-class>
+                        <xa-datasource-class>com.microsoft.sqlserver.jdbc.SQLServerXADataSource</xa-datasource-class>
+                        <datasource-class>com.microsoft.sqlserver.jdbc.SQLServerDataSource</datasource-class>
+                    </driver>
+{% endif %}
+                </drivers>

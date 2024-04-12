@@ -1,0 +1,140 @@
+            <subsystem xmlns="urn:org.camunda.bpm.jboss:1.1">
+                <process-engines>
+                    <process-engine name="default" default="true">
+                        <datasource>
+			    {{ instance.jvm.subsystems.camunda.datasource }}
+                        </datasource>
+                        <history-level>
+                            full
+                        </history-level>
+                        <configuration>
+                            org.camunda.bpm.container.impl.jboss.config.ManagedJtaProcessEngineConfiguration
+                        </configuration>
+                        <properties>
+                            <property name="jobExecutorAcquisitionName">
+                                default
+                            </property>
+                            <property name="isAutoSchemaUpdate">
+                                false
+                            </property>
+                            <property name="authorizationEnabled">
+                                true
+                            </property>
+                        </properties>
+                        <plugins>
+                            <plugin>
+                                <class>
+                                    org.camunda.bpm.application.impl.event.ProcessApplicationEventListenerPlugin
+                                </class>
+                            </plugin>
+                            <plugin>
+                                <class>
+                                    org.camunda.spin.plugin.impl.SpinProcessEnginePlugin
+                                </class>
+                            </plugin>
+                            <plugin>
+                                <class>
+                                    org.camunda.connect.plugin.impl.ConnectProcessEnginePlugin
+                                </class>
+                            </plugin>
+                            <plugin>
+                                <class>
+                                    org.camunda.bpm.identity.impl.ldap.plugin.LdapIdentityProviderPlugin
+                                </class>
+                                <properties>
+                                    <property name="serverUrl">
+					{{ instance.jvm.subsystems.camunda.plugins.ldap.serverUrl }}
+                                    </property>
+                                    <property name="managerDn">
+					{{ instance.jvm.subsystems.camunda.plugins.ldap.managerDn }}
+                                    </property>
+                                    <property name="managerPassword">
+					{{ instance.jvm.subsystems.camunda.plugins.ldap.managerPassword }}
+                                    </property>
+                                    <property name="baseDn">
+					{{ instance.jvm.subsystems.camunda.plugins.ldap.basedn }}
+                                    </property>
+                                    <property name="userSearchBase">
+					{{ instance.jvm.subsystems.camunda.plugins.ldap.userSearchBase }}
+                                    </property>
+                                    <property name="userSearchFilter">
+                                        (objectCategory=Person)
+                                    </property>
+                                    <property name="userIdAttribute">
+                                        sAMAccountName
+                                    </property>
+                                    <property name="userFirstnameAttribute">
+                                        givenName
+                                    </property>
+                                    <property name="userLastnameAttribute">
+                                        sn
+                                    </property>
+                                    <property name="userEmailAttribute">
+                                        mail
+                                    </property>
+                                    <property name="userPasswordAttribute">
+                                        userpassword
+                                    </property>
+                                    <property name="groupSearchBase">
+					{{ instance.jvm.subsystems.camunda.plugins.ldap.groupSearchBase }}
+                                    </property>
+                                    <property name="groupSearchFilter">
+                                        (objectClass=Group)
+                                    </property>
+                                    <property name="groupIdAttribute">
+                                        cn
+                                    </property>
+                                    <property name="groupNameAttribute">
+                                        cn
+                                    </property>
+                                    <property name="groupMemberAttribute">
+                                        member
+                                    </property>
+                                    <property name="authorizationCheckEnabled">
+                                        false
+                                    </property>
+                                    <property name="acceptUntrustedCertificates">
+                                        true
+                                    </property>
+                                    <property name="useSsl">
+                                        true
+                                    </property>
+                                </properties>
+                            </plugin>
+                            <plugin>
+                                <class>
+                                    org.camunda.bpm.engine.impl.plugin.AdministratorAuthorizationPlugin
+                                </class>
+                                <properties>
+                                    <property name="administratorGroupName">
+					{{ instance.jvm.subsystems.camunda.plugins.AdministratorAuthorizationPlugin.administratorGroupName }}
+                                    </property>
+                                </properties>
+                            </plugin>
+                        </plugins>
+                    </process-engine>
+                </process-engines>
+                <job-executor>
+                    <thread-pool-name>
+                        job-executor-tp
+                    </thread-pool-name>
+                    <job-acquisitions>
+                        <job-acquisition name="default">
+                            <acquisition-strategy>
+                                SEQUENTIAL
+                            </acquisition-strategy>
+                            <properties>
+                                <property name="lockTimeInMillis">
+                                    300000
+                                </property>
+                                <property name="waitTimeInMillis">
+                                    5000
+                                </property>
+                                <property name="maxJobsPerAcquisition">
+                                    3
+                                </property>
+                            </properties>
+                        </job-acquisition>
+                    </job-acquisitions>
+                </job-executor>
+            </subsystem>

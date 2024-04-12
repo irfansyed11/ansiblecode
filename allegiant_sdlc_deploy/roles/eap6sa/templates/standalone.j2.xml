@@ -1,0 +1,40 @@
+<?xml version='1.0' encoding='UTF-8'?>
+
+<server xmlns="urn:jboss:domain:1.8">
+
+    <extensions>
+{% include "extensions.j2.xml" %}
+    </extensions>
+
+    <system-properties>
+{% include "sysprops.j2.xml" %}
+    </system-properties>
+
+
+    <management>
+{% include "management.j2.xml" %}
+
+    </management>
+
+    <profile>
+{% include "profile.j2.xml" %}
+    </profile>
+
+    <interfaces>
+{% include "interfaces.j2.xml" %}
+    </interfaces>
+
+    <socket-binding-group name="standard-sockets" default-interface="public" port-offset="{{ instance.jvm.port_offset }}">
+        <socket-binding name="management-native" interface="management" port="${jboss.management.native.port:{{ 9999 + instance.jvm.port_offset|int }}}"/>
+        <socket-binding name="ajp" port="8009"/>
+        <socket-binding name="http" port="8080"/>
+        <socket-binding name="https" port="8443"/>
+        <socket-binding name="remoting" port="4447"/>
+        <socket-binding name="txn-recovery-environment" port="4712"/>
+        <socket-binding name="txn-status-manager" port="4713"/>
+        <outbound-socket-binding name="mail-smtp">
+            <remote-destination host="localhost" port="25"/>
+        </outbound-socket-binding>
+    </socket-binding-group>
+
+</server>

@@ -1,0 +1,53 @@
+# {{ ansible_managed }}
+---
+- type: log
+  paths: ['/var/log/jbossas/{{ instance.jvm.id }}/*.log']
+  fields:
+    env: {{ working_environment }}
+    app_id: {{ instance.jvm.id }}
+    category: jboss
+    sourcecategory: jboss_{{ working_environment }}
+    source: {{ instance.jvm.id }}
+  fields_under_root: True
+  multiline.pattern: '^[0-9]{2}:[0-9]{2}:[0-9]{2}'
+  multiline.negate: true
+  multiline.match: after
+  encoding: plain
+  scan_frequency: 10s
+  harvester_buffer_size: 16384
+  max_bytes: 10485760
+  tail_files: false
+  backoff: 1s
+  max_backoff: 10s
+  backoff_factor: 2
+  close_inactive: 5m
+  close_renamed: false
+  close_removed: true
+  close_eof: false
+  clean_inactive: 0
+  clean_removed: true
+  close_timeout: 0
+  processors:
+  - dissect:
+      tokenizer: "%{} %{loglevel} %{}"
+      target_prefix: "jboss"
+  - script:
+      lang: javascript
+      id: my_filter
+      source: >
+        function process(event) {
+            var message = event.Get("message").toString();
+            var regex_time = /[0-9]{2}:[0-9]{2}:[0-9]{2}[.|,][0-9]{3}/;
+            if(regex_time.test(message)){
+              var full_date = new Date().toISOString();
+              var date = full_date.substring(0, 10);
+              var time = regex_time.exec(message).toString().replace(",", ".");
+              var date_time = (date+"T"+time+"Z").toString();
+              event.Put("real_date", date_time);
+              }
+        }
+  - timestamp:
+      field: real_date
+      layouts: '2006-01-02T15:04:05.999Z'
+  - drop_fields:
+      fields: ["real_date"]

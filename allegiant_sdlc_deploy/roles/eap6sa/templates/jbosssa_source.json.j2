@@ -1,0 +1,23 @@
+{
+"api.version":"v1",
+  "collectorType":"Installable",
+  "targetCpu":20,
+  "source":
+   {
+     "name":"{{ instance.jvm.id }}",
+     "category":"jboss_{{ working_environment }}",
+     "automaticDateParsing":true,
+     "multilineProcessingEnabled":true,
+     "useAutolineMatching":true,
+  {% if instance.jvm.id == "mxairportops" or instance.jvm.id == "mx" or instance.jvm.id == "mxutils" %}
+  {% set servergroup_timezone = "UTC" %}
+  {% endif %}
+     "timeZone":"{{ servergroup_timezone | default(sumo_time_zone[ansible_date_time.tz]) }}",
+     "forceTimeZone":true,
+     "filters":[],
+     "encoding":"UTF-8",
+     "pathExpression":"/var/log/jbossas/{{ instance.jvm.id }}/*.log",
+     "blacklist":[],
+     "sourceType":"LocalFile"
+   }
+}

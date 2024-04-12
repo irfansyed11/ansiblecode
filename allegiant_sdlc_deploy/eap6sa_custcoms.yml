@@ -1,0 +1,14 @@
+---
+- hosts: jbs002_custcoms
+  serial: "{{ jb_serial | default(1) }}"
+  become: "True"
+  vars_files:
+    - vars/jboss_app_info.yml
+    - vars/versions_jboss.yml
+  roles:
+    - role: eap6sa
+      instance: "{{ jboss_custcoms }}"
+      system_properties: "{{ sysprops_custcoms }}"
+      artifacts: "{{ jboss_custcoms.artifacts | intersect(jboss_limit_apps|default(jboss_custcoms.artifacts)) }}"
+  tags:
+    - custcoms

@@ -1,0 +1,21 @@
+---
+- name: add init script
+  command: chkconfig --add jboss-{{ instance.jvm.id }}
+  changed_when:
+    "True"
+  args:
+    warn: "False"
+  notify:
+    - restart instance
+
+- name: restart instance
+  service:
+    name: "jboss-{{ instance.jvm.id }}"
+    state: restarted
+    enabled: "True"
+  when: jboss_start|default(True)|bool
+
+- name: restart-filebeat
+  service:
+    name: filebeat
+    state: restarted

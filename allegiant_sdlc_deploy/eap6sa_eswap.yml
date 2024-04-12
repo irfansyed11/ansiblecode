@@ -1,0 +1,14 @@
+---
+- hosts: jbs022_eswap
+  serial: "{{ jb_serial | default(1) }}"
+  become: "True"
+  vars_files:
+    - vars/jboss_app_info.yml
+    - vars/versions_jboss.yml
+  roles:
+    - role: eap6sa
+      instance: "{{ jboss_eswap }}"
+      system_properties: "{{ sysprops_eswap }}"
+      artifacts: "{{ jboss_eswap.artifacts | intersect(jboss_limit_apps|default(jboss_eswap.artifacts)) }}"
+  tags:
+    - eswap

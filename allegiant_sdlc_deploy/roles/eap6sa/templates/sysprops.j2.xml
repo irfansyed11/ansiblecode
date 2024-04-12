@@ -1,0 +1,5 @@
+{% for name,value in system_properties.items() %}
+{% if "__omit_place_holder__" not in value|string %}
+        <property name="{{ name }}" value="{{ value }}"/>
+{% endif %}
+{% endfor %}

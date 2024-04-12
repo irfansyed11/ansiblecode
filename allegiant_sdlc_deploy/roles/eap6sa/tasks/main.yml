@@ -1,0 +1,336 @@
+---
+# This is a workaround for the way we are using tagging and ansible-2.8
+# changing the behavior of tagging/gather_facts
+# https://github.com/ansible/ansible/issues/57529
+- name: Gather Facts when they aren't already gathered
+  setup:
+  tags:
+    - deploy
+    - keystore
+    - restart-instance
+    - configuration
+    - config
+#  when:
+#    - not ansible_facts
+
+#- name: print ansible_facts
+#  debug: var=ansible_facts
+
+- name: group by working environment
+  group_by:
+    key: "{{ working_environment }}"
+  when:
+    - working_environment is defined
+  tags:
+    - always
+
+- name: Set variables to survive across plays/roles
+  set_fact:
+    jksdest: /usr/share/jbossas/standalone/configuration/jboss.keystore
+    jksgroup: jboss
+    jksowner: jboss
+
+- name: Install java keystore on JBoss hosts
+#  become: "{{ use_sudo|default(True) }}"
+  import_role:
+    name: java_keystore
+  when:
+    - working_environment[0:3] in ['aws']
+
+- name: Link init script
+  file:
+    state: link
+    src: /etc/init.d/jbossas
+    dest: /etc/init.d/jboss-{{ instance.jvm.id }}
+  notify:
+    - add init script
+
+- name: template sysconfig
+  template:
+    src: sysconfig.j2
+    dest: /etc/sysconfig/jboss-{{ instance.jvm.id }}
+  notify:
+    - restart instance
+
+- name: Template /etc/jbossas/standalone/application-users.properties
+  template:
+    src: application-users.properties.j2
+    dest: /etc/jbossas/standalone/application-users.properties
+    owner: jboss
+    group: jboss
+    mode: '0644'
+  notify:
+    - restart instance
+
+- name: Template /etc/jbossas/standalone/application-roles.properties
+  template:
+    src: application-roles.properties.j2
+    dest: /etc/jbossas/standalone/application-roles.properties
+    owner: jboss
+    group: jboss
+    mode: '0644'
+  notify:
+    - restart instance
+
+- name: Template xml file
+  template:
+    src: standalone.j2.xml
+    dest: /etc/jbossas/standalone/sa-{{ instance.jvm.id }}.xml
+    backup: "True"
+  notify:
+    - restart instance
+  tags:
+    - config
+    - configuration
+    - vault-tasks
+
+- name: Ensure instance directories are created
+  file:
+    state: directory
+    owner: jboss
+    group: jboss
+    mode: 0755
+    path: "{{ item }}"
+  with_items:
+    - /var/log/jbossas/{{ instance.jvm.id }}
+    - /var/lib/jbossas/{{ instance.jvm.id }}/deployments
+    - /var/cache/jbossas/{{ instance.jvm.id }}
+  notify:
+    - restart instance
+
+- name: Symlink Instance directories
+  file:
+    state: link
+    path: "{{ item.path }}"
+    src: "{{ item.src }}"
+  with_items:
+    - path: /var/lib/jbossas/{{ instance.jvm.id }}/configuration
+      src: /etc/jbossas/standalone
+    - path: /usr/share/jbossas/{{ instance.jvm.id }}
+      src: /var/lib/jbossas/{{ instance.jvm.id }}
+    - path: /var/lib/jbossas/{{ instance.jvm.id }}/log
+      src: /var/log/jbossas/{{ instance.jvm.id }}
+    - path: /var/lib/jbossas/{{ instance.jvm.id }}/tmp
+      src: /var/cache/jbossas/{{ instance.jvm.id }}
+
+- name: Manage startup script
+  template:
+    src: standalone.j2.sh
+    dest: /usr/share/jbossas/bin/{{ instance.jvm.id }}.sh
+    mode: 0755
+    owner: jboss
+    group: jboss
+  notify:
+    - restart instance
+
+- name: Manage startup config
+  template:
+    src: standalone.j2.conf
+    dest: "/usr/share/jbossas/bin/{{ instance.jvm.id }}.conf"
+  tags:
+    - config
+    - configuration
+    - startup-configuration
+  notify:
+    - restart instance
+
+- name: Flush handlers
+  meta: flush_handlers
+
+- name: Push artifact from local
+  copy:
+    backup: "True"
+    remote_src: "False"
+    src: "{{ jboss_local_war }}"
+    dest: /tmp/{{ jboss_app_info[item].artifact_id }}.war
+  with_items:
+    - "{{ artifacts|replace('-','_') }}"
+  when:
+    - jboss_local_war is defined
+  check_mode: "False"
+  tags:
+    - deploy
+
+- name: debug working_environment
+  debug: var=working_environment
+
+- name: debug ansible_system_vendor
+  debug: var=ansible_system_vendor
+
+- name: debug jboss_local_war
+  debug: var=jboss_local_war
+
+- name: Download artifacts - SDLC - from NEXUS repo
+  get_url:
+    force: yes
+    validate_certs: no
+    url: "https://{{ source_repo_server }}{{ source_jboss_wars_uri }}/
+         {{- jboss_app_info[item].repository | default('releases') -}}/
+         {{- jboss_app_info[item].group_id|replace('.','/') -}}/
+         {{- jboss_app_info[item].artifact_id -}}/
+         {{- jboss_wars[item].deploy_version -}}/
+         {{- jboss_app_info[item].artifact_id -}}-
+         {{- jboss_wars[item].deploy_version -}}.{{ jboss_app_info[item].artifact_type | default('war') }}"
+    dest: "/tmp/{{ jboss_app_info[item].artifact_id }}.{{ jboss_app_info[item].artifact_type | default('war') }}"
+  with_items:
+    - "{{ artifacts|replace('-','_') }}"
+  when:
+    - ((working_environment is defined and
+      working_environment[0:3] not in ['aws','vsw','ndd'])
+      and jboss_local_war is not defined)
+  tags:
+    - deploy
+
+- name: Download artifacts - UPPERS - from YUM repositories
+  get_url:
+    force: yes
+    validate_certs: no
+    url: "https://repo.{{ ansible_domain }}/pub/jboss-wars/base/
+         {{- jboss_app_info[item].server_group -}}/
+         {{- jboss_app_info[item].artifact_id -}}-
+         {{- jboss_wars[item].deploy_version -}}.{{ jboss_app_info[item].artifact_type | default('war') }}"
+    dest: "/tmp/{{ jboss_app_info[item].artifact_id }}.{{ jboss_app_info[item].artifact_type | default('war') }}"
+  with_items:
+    - "{{ artifacts|replace('-','_') }}"
+  when:
+    - working_environment is defined
+    - working_environment[0:3] in ['aws','vsw','ndd']
+    - jboss_local_war is not defined
+  tags:
+    - deploy
+
+- name: Deploy artifacts
+  jboss:
+    deploy_path: /var/lib/jbossas/{{ instance.jvm.id }}/deployments
+    deployment: "{{ jboss_app_info[item].artifact_id }}.{{ jboss_app_info[item].artifact_type | default('war') }}"
+    src: "/tmp/{{ jboss_app_info[item].artifact_id }}.{{ jboss_app_info[item].artifact_type | default('war') }}"
+  with_items:
+    - "{{ artifacts|replace('-','_') }}"
+  tags:
+    - deploy
+  when: jboss_start|default(True)|bool
+
+- name: copy artifacts to deployment folder
+  copy:
+    dest: /var/lib/jbossas/{{ instance.jvm.id }}/deployments/{{ jboss_app_info[item].artifact_id }}.{{ jboss_app_info[item].artifact_type | default('war') }}
+    src: "/tmp/{{ jboss_app_info[item].artifact_id }}.{{ jboss_app_info[item].artifact_type | default('war') }}"
+  with_items:
+    - "{{ artifacts|replace('-','_') }}"
+  tags:
+    - deploy
+  when: not jboss_start|default(True)|bool
+
+# - name: Setup consul variables
+#   set_fact:
+#     consul_port: "{{ (instance.jvm.port_offset|int + 8080 ) }}"
+#     consul_app: >-
+#       {{ consul_app|default({})
+#       | combine
+#       ({ item: (jboss_app_info[item].verification.context_root
+#         | regex_replace('^:\d*\/')
+#         | replace('info.json', '')) }) }}
+#     consul_health: >-
+#       {{ consul_health|default({})
+#       | combine
+#       ({ item: (jboss_app_info[item].verification.context_root
+#         | regex_replace('^:\d*\/')) }) }}
+#   with_items:
+#     - "{{ artifacts|replace('-','_') }}"
+#   when:
+#     - working_environment[0:3] not in ['vsw', 'ndd']
+#   tags:
+#     - consul
+
+# - name: Add consul Monitor
+#   copy:
+#     content: |
+#       {
+#         "service": {
+#           "name": "{{ item }}",
+#           "address": "",
+#           "port": {{ consul_port }},
+#           "tags": [
+#             "traefik.frontend.rule=PathPrefix:/{{ consul_app[item] }}"
+#           ],
+#           "enable_tag_override": false,
+#           "checks": [
+#             {
+#               "http": "http://localhost:{{ consul_port }}/{{ consul_health[item] }}",
+#               "status": "passing",
+#               "interval": "10s"
+#             }
+#           ]
+#         }
+#       }
+#     dest: /etc/consul.d/client/{{ item }}.json
+#   with_items:
+#     - "{{ artifacts|replace('-','_') }}"
+#   when:
+#     - working_environment[0:3] not in ['vsw', 'ndd']
+#   tags:
+#     - consul
+
+# - name: Reload consul
+#   service:
+#     name: consul
+#     state: reloaded
+#   when:
+#     - working_environment[0:3] not in ['vsw', 'ndd']
+#   tags:
+#     - consul
+
+- name: Deploy Filebeat configuration files for the instance
+  template:
+    src: collectables.yml.j2
+    dest: /etc/filebeat/conf.d/{{ instance.jvm.id }}.yml
+    owner: root
+    group: root
+    mode: 0644
+  when:
+    - "'jboss_standalone' in group_names"
+    - working_environment[0:3] in ['aws', 'lhq'] and working_environment[3:6] not in ['prd']
+  notify: restart-filebeat
+  tags:
+    - filebeat
+
+- name: "Stop service jboss-{{ instance.jvm.id }}"
+  systemd:
+    name: "jboss-{{ instance.jvm.id }}"
+    state: stopped
+  tags:
+    - stop
+  when: working_environment in ['lhqpen']
+
+- name: "Disable service jboss-{{ instance.jvm.id }}"
+  systemd:
+    name: "jboss-{{ instance.jvm.id }}"
+    enabled: no
+  tags:
+    - stop
+  when: working_environment in ['lhqpen']
+
+- name: Ensure secureflightcbs rpm verification script is installed
+  copy:
+    backup: yes
+    src: check_scheduler.sh
+    dest: /etc/cron.scripts/check_scheduler.sh
+    mode: 0740
+    owner: root
+    group: root
+
+- name: Install mail utility
+  yum:
+    name:
+      - mailx
+    state: present
+
+- name: Ensure ITN cron script is placed
+  copy:
+    backup: yes
+    src: itntran-ota-post.sh
+    dest: /etc/cron.scripts/itntran-ota-post.sh
+    mode: 0750
+    owner: root
+    group: root
+  when: working_environment[0:6] in ['awsprd']
+...

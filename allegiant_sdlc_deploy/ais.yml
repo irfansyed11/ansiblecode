@@ -1,0 +1,50 @@
+---
+- hosts: aisap
+  name: Setup AIS Hosts
+  gather_facts: true
+  become: "yes"
+  serial: 1
+  vars_files:
+    - vars/versions.yml
+    - vars/app_info.yml
+    - vars/dbcreds.sdlc.yml
+  vars:
+    - dbcreds_vars_files:
+        ["vars/{{ ansible_domain }}/db_passwords.yml",
+         "vars/nonprod_db_passwords.yml"]
+
+    - sso_env_var_files:
+        ["vars/{{ ansible_domain }}/g4plus_sso.yml",
+         "vars/defaults/g4plus_sso.yml"]
+
+  # Added pretask to handle default var_file for lhqpen pods
+  pre_tasks:
+    - name: include first found dbcreds_vars_files
+      include_vars: "{{ item }}"
+      with_first_found: "{{ dbcreds_vars_files }}"
+    - name: include first found sso_env_var_files
+      include_vars: "{{ item }}"
+      with_first_found: "{{ sso_env_var_files }}"
+    - name: set aws tag if applicable
+      set_fact:
+        is_aws: 'True'
+      when:
+        - '"Amazon" in ansible_system_vendor'
+  roles:
+    - g4plus-sso
+    - ais
+  tags:
+    - deploy
+
+- hosts: aisap
+  name: Restart AIS
+  serial: 1
+  become: "True"
+  tasks:
+    - name: Restart AIS
+      service:
+        name: httpd
+        state: restarted
+        enabled: "True"
+      tags:
+        - deploy

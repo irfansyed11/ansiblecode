@@ -1,0 +1,148 @@
+---
+- name: Setup Traefik
+  hosts: balap
+  serial: 1
+  become: "True"
+  vars_files:
+    - vars/ad_auth_passwords.yml
+    - vars/versions.yml
+  pre_tasks:
+    - name: Group by env
+      group_by:
+        key: "{{ working_environment }}"
+  roles:
+    - role: filebeat
+      filebeat_collectables:
+        - source:
+            name: "traefik-server"
+            type: log
+            paths: "[\"/var/log/messages\"]"
+            exclude_files: "[\".gz$\"]"
+            fields:
+              env: "{{ working_environment }}"
+              app_id: "traefik-server"
+              category: "traefik-server"
+              sourcecategory: "traefik-server_{{ working_environment }}"
+              source: "traefik-server"
+            #multiline_pattern: '^[0-9]{4}\/[0-9]{2}\/[0-9]{2}'
+            #multiline_negate: True
+            #multiline_match: after
+            #fields_under_root: true
+            #processors:
+            #  timestamp_resweb: true
+            #  target_prefix: "{{ stack_name }}"
+
+      when:
+        - working_environment[0:3] in ['aws'] and working_environment[3:6] not in ['prd']
+      tags:
+        - filebeat
+    - role: repos
+      repo_id: "springboot_infra"
+      repo_name: "Springboot Infrastructure"
+      repo_dir: "springboot_infra"
+      repo_dst_name: "springboot_infra"
+      repo_enabled: '0'
+      repo_gpgcheck: '0'
+      repo_sslverify: '0'
+      repo_server: "{{ sb_info_repo_url | default('repo.' + ansible_domain) }}"
+    - role: consul
+      consul_version: "{{ springboot_infra_rpms['g4-consul']['version'] }}.el7"
+      consul_datacenter: "{{
+        consul_env_datacenter
+        | default(working_environment)
+        }}"
+      consul_servers: "{{
+        groups[consul_group_name]
+        | reject('search',ansible_nodename)
+        | list  }}"
+      consul_server: "False"
+      python_consul_version:
+        "{{ springboot_infra_rpms['g4-python-consul']['version'] }}"
+      tags:
+        - prereq
+    - role: wildcard_ssl_certs
+      internal_or_external: "{{ wildcard_signed_certs|default('internal') }}"
+      cert_dest: /etc/traefik/traefik.pem
+      key_dest: /etc/traefik/traefik.key
+      cacert_install: "False"
+    - role: httpd
+      listen: 127.0.0.1:8081
+    - role: traefik
+      traefik_version: "{{ springboot_infra_rpms['g4-traefik']['version'] }}"
+      ad_server: "{{ primary_ad_server |
+        default('lhqcrpadsdc02.allegiantair.com') }}"
+      traefik_consulCatalog_endpoint: localhost:8500
+      traefik_consulCatalog_domain: "{{ ansible_domain }}"
+      traefik_api_entryPoint: traefiks
+      traefik_ping_entryPoint: https
+      traefik_file_backend_enable: "True"
+      traefik_tracing_enable: "False"
+      traefik_file_backend_backends:
+        - http-only
+        - traefik-http
+      traefik_file_backend_frontends:
+        - name: http-only
+          config:
+            backend: http-only
+            entrypoints:
+              - http
+        - name: traefik-http
+          config:
+            backend: traefik-http
+            entrypoints:
+              - traefik
+      traefik_default_entrypoints:
+        - https
+      traefik_entrypoints:
+       - name: http
+         address: ":80"
+         redirect:
+           entryPoint: https
+       - name: https
+         address: ":443"
+         tls:
+           certificates:
+             certFile: /etc/traefik/traefik.pem
+             keyFile: /etc/traefik/traefik.key
+           minVersion: VersionTLS12
+           ciphers:
+             - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+             - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+             - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+             - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+             - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+             - TLS_RSA_WITH_AES_128_GCM_SHA256
+             - TLS_RSA_WITH_AES_256_GCM_SHA384
+             - TLS_RSA_WITH_AES_128_CBC_SHA
+             - TLS_RSA_WITH_AES_256_CBC_SHA
+       - name: traefik
+         address: ":8080"
+         redirect:
+           entryPoint: traefiks
+       - name: traefiks
+         address: ":8443"
+         auth_forward:
+           address: http://localhost:8081
+         tls:
+           certificates:
+             certFile: /etc/traefik/traefik.pem
+             keyFile: /etc/traefik/traefik.key
+           minVersion: VersionTLS12
+           ciphers:
+             - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+             - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+             - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+             - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+             - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+             - TLS_RSA_WITH_AES_128_GCM_SHA256
+             - TLS_RSA_WITH_AES_256_GCM_SHA384
+             - TLS_RSA_WITH_AES_128_CBC_SHA
+             - TLS_RSA_WITH_AES_256_CBC_SHA
+  post_tasks:
+    - name: 'Ensure traefik key owner/perms are correct'
+      file:
+        path: '/etc/traefik/traefik.key'
+        owner: 'traefik'
+        group: 'traefik'
+        mode: '0600'
+...

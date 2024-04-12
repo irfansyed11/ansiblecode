@@ -1,0 +1,139 @@
+ansible_managed_file: "Ansible managed: This file is managed by sdlc_deploy. Edits may be overwritten on the next deploy."
+external_domain: "{% if working_environment[3:6] in ['prd'] %}allegiantair.com{%elif working_environment[3:6] in ['trn'] %}trn.allegiantair.com{%elif working_environment[0:6] in ['awsstg','awsdev'] %}{{ working_environment[3:] }}.aws.allegiantair.com{% else %}{{ ansible_domain }}{% endif %}"
+
+# Graphite / CollectD / StatsD
+global_graphite_server_url: "{% if working_environment[3:6] in ['prd'] %}vswprdgphap11.prd.allegiantair.com{% elif working_environment[3:6] in ['stg'] %}vswstggphap11.stg.allegiantair.com{% elif working_environment[3:6] in ['qat', 'dev'] %}lhqsb1gphap11.sb1.allegiantair.com{% else %} {% endif %}"
+
+# StatsD server lives on the Graphite server
+global_statsd_server_port: 8125
+
+# jboss domain mode -aws- default passwords
+print_services_password: "L0ck1tUp"
+common_db_password: "L0ck1tUp"
+g4travel_user_password: "L0ck1tUp"
+g4flight_user_password: "L0ck1tUp"
+sysaccount_login: "service.aissec"
+sysaccount_password: "@1S$3C1!"
+airvault_pass: "DevGiant"
+airvault_user: "AllegiantDev"
+
+# defaul sso_env
+sso_env: "sb1"
+
+# g4-secureflightcbs
+wmq_runScheduledJobs_host:
+  "set_to_scheduler_hostname_not_FQDN_per_env_in_jboss_env_vars"
+
+# JBoss Standalone Boottime Properties
+jboss_boottime_properties:
+  jackson.deserialization.whitelist.packages:
+    "com,org,java,javax"
+  swagger.ui.enabled:
+    "true"
+  org.jboss.as.web.deployment.DELETE_WORK_DIR_ONCONTEXTDESTROY:
+    "true"
+
+# JBoss Standalone keystore
+jboss_keystore_sdlc: |
+  /u3+7QAAAAIAAAABAAAAAQAPZzRfd2lsZGNhcmRjZXJ0AAABRMKezMIAAAUBMIIE/TAOBgorBgEE
+  ASoCEQEBBQAEggTpVPDb7Z4KUeHeWgVC6G9dBKGMzCGzNy+5GmB9Uq952y5GQhoK8/CFZ3MNB4ba
+  JZolaLo8WpzUsXPWHAP+Jj8nEhTUqb8FR1ZPHwcYbRy4ZQrpOpMTvQzG7MZjqb60zKguELC/a+al
+  ul/Ya5sl+U4DLSav0MFxUtQ+ltYp4ybz5Sb97Mix6kwHlnpt3dtMHkCYSm7WHALk9rhqNpB5J9Up
+  LkjJU6VhxFB8PW/Yp25qDya3K+RkCDR/MMl/7q/uFdq7w93u8KTL9ETTY3BswRVGZI+g+eKqMOLp
+  XIbmi88UzNbVS2lj4TtWWIjN5RoWhSTnGWQM+dEOY/FYJNeszvHKfXp0VF0nMF0N9TFyslL7JeP+
+  b4FADRI0cQuvesoN7SJNFYxvjLB/yC6N4Jo0YYUiHiIMtEa968Uoqc64qU4/UDgUEiZr8jq2iDUd
+  /q6pPiir7tzTGA2cqw9hqYnNM+d9u1OyoD+/FCRfZ2959Bj1hQ4/3NI/uJTYT5V8Y4sjho6wC9G4
+  ukodvvCbtoEkguIKHAf/bF2wFnpJnNvU2GuJ/PGgFSTgC7JRKw4nJhCAOELCGCLiXbcmxD0eIBv7
+  Q8Op5Ow1ruoWxEcKBhCpVI44LazYHUk53GV+PZYNcv7O/ZGUEbOUV0eh9evDewpp+TUk0PYssTbH
+  ObUjgmtNOBDvGxSJYHitIbhdIHQPdPMudVMbmHkOKsM2ATzx7fs+cAXaUC1Lorl7hxdMbqKtCuHv
+  zUS6hUm2vCjZPB/SbbOj0UhAkzWI2priYTgC5vMl+KUmtPq9H0Z1vB98QwjrFVXCcaIMBDnBa8iE
+  gueqGi8KYp5msRsoZKkvj50Kn4vTRZzU17LnWQmjDhFsK5ymt8T8OhPtmXB9OlBqxHqlnG+4/uYZ
+  Qx8Hg3hYyrm87+FdnZUzGZ0wyF0XIdG90jWO+KwnTxvY7XPLymLgZZurmpmXZlpZJDj3Sz3Q3cvP
+  n9A2th5k3WfbJsllTWauGEnVatndFCMg00wgPysLyJxT7MAxnmzeGQCxwveG/azVJB2w68z+a5jT
+  kLE0skjf2ksw4xilQS9xg20BHOrNvTAM0Lh6MaE2hIEJKQxHebuD54/a8QKjfj3IOyTVgzX3CwaX
+  1Mnasmtd41D6YIC2vR8E6ewoAID8jneKPjdrpeX4xhzS/a0oqL0hkzHh57Ff8SM8WVMmCNaG2Dri
+  8JEBXBj7IHYjWybnFN3QJBpeKoT4flMib4JR1UlLvpfqCOlkwTZBue4j7ZgM40KEVVu7EhTWheee
+  DdbhMgrNanXjY9I+JtwhbsDP+9LFbNI6hTYtlPGSHKyh7jAjE9DPZvq70Fl/cZSPhaAb7kAHipqh
+  qBBZ+jfF04iswhzeG10rfD8BsID6V56FsqlVYdhUc+VlLlPtvv1mLQQA1fcz2bs27Mn5wrIPHPte
+  7q9enokd7BliKWAavGi9ef8u7ekMtzRP1wt4goYSoo+sjf2bLjjqRs1AWQzOri4y5QGvH4Pal7zS
+  DBz9rQdslzvk76ufMStmQwQZBz1c1PP04k3cMr+CP6+9qP2wc8Z9GOIJoM/LVWLq+G0m5HbeoHe3
+  3ADaTltyNpgcQ4uR57kHrQ36y+hEmUb5/n4kYSpuvnoUihI0+AU3kHXFlAe+esoEFsFtv0C5LOwO
+  evo3un37MxFSmSALLq4xAAAAAgAFWC41MDkAAAn4MIIJ9DCCCNygAwIBAgIJAKzeUCCtsI8nMA0G
+  CSqGSIb3DQEBBQUAMIGVMQswCQYDVQQGEwJVUzEPMA0GA1UECAwGTmV2YWRhMRYwFAYDVQQKDA1B
+  bGxlZ2lhbnQgQWlyMRQwEgYDVQQLDAtEZXZlbG9wbWVudDEoMCYGA1UEAwwfc3Z1c3NsYXAxMS51
+  dGwuYWxsZWdpYW50YWlyLmNvbTEdMBsGCSqGSIb3DQEJARYOcm9vdEBsb2NhbGhvc3QwHhcNMTQw
+  MzAzMjIwNTE1WhcNMTkwMzAyMjIwNTE1WjCBvzELMAkGA1UEBhMCVVMxDzANBgNVBAgMBk5ldmFk
+  YTESMBAGA1UEBwwJTGFzIFZlZ2FzMRYwFAYDVQQKDA1BbGxlZ2lhbnQgQWlyMRQwEgYDVQQLDAtE
+  ZXZlbG9wbWVudDEoMCYGA1UEAwwfc3Z1c3NsYXAxMS51dGwuYWxsZWdpYW50YWlyLmNvbTEzMDEG
+  CSqGSIb3DQEJARYkcm9vdEBzdnVzc2xhcDExLnV0bC5hbGxlZ2lhbnRhaXIuY29tMIIBIjANBgkq
+  hkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsabFHs9qgCJ1Kec1xwqkTskh1cVZkJ3zE2iFrrhZPvS6
+  eSjEpTpOgDLmRnmr2AfxaluR80GTRWsDor+EKNHXx+qIYBya/UBwsGEyU4WvvoSihUHgEd9Ta378
+  FPvNDfbsi5mForVlfuDpr4QUcL13L2cxtxf8Rs1x+xkiY5hOi74ouEPCnGRdducbdzJUd24TEmMe
+  JgA0kRlwrcBBJ1kKPr2Ujex9TNqHEKKkeItvPCbhTmLePXfkoGIgiwzPqDEtJlQ2wSZjoeymMwNp
+  pfH3hx9MR9Q2YXPvEfEdlM7uEW6MUlz408QUEYyiTjxCuhd3PdJPD/ON1jSr1sJm8P1YoQIDAQAB
+  o4IGGTCCBhUwggYRBgNVHREEggYIMIIGBIISKi5hbGxlZ2lhbnRhaXIuY29tghYqLmludC5hbGxl
+  Z2lhbnRhaXIuY29tghYqLnByZC5hbGxlZ2lhbnRhaXIuY29tghYqLnFhdC5hbGxlZ2lhbnRhaXIu
+  Y29tghYqLnNieC5hbGxlZ2lhbnRhaXIuY29tghYqLnN0Zy5hbGxlZ2lhbnRhaXIuY29tghYqLnRy
+  bi5hbGxlZ2lhbnRhaXIuY29tghYqLnV0bC5hbGxlZ2lhbnRhaXIuY29tghYqLnNiMS5hbGxlZ2lh
+  bnRhaXIuY29tghYqLnNiMi5hbGxlZ2lhbnRhaXIuY29tghYqLnNiMy5hbGxlZ2lhbnRhaXIuY29t
+  ghYqLnNiNC5hbGxlZ2lhbnRhaXIuY29tghYqLnNiNS5hbGxlZ2lhbnRhaXIuY29tghYqLnNiNi5h
+  bGxlZ2lhbnRhaXIuY29tghYqLnNiNy5hbGxlZ2lhbnRhaXIuY29tghYqLnNiOC5hbGxlZ2lhbnRh
+  aXIuY29tghYqLnNiOS5hbGxlZ2lhbnRhaXIuY29tghYqLnFhMS5hbGxlZ2lhbnRhaXIuY29tghYq
+  LnFhMi5hbGxlZ2lhbnRhaXIuY29tghYqLnFhMy5hbGxlZ2lhbnRhaXIuY29tghYqLnFhNC5hbGxl
+  Z2lhbnRhaXIuY29tghYqLnFhNS5hbGxlZ2lhbnRhaXIuY29tghYqLnFhNi5hbGxlZ2lhbnRhaXIu
+  Y29tghYqLnFhNy5hbGxlZ2lhbnRhaXIuY29tghYqLnFhOC5hbGxlZ2lhbnRhaXIuY29tghYqLnFh
+  OS5hbGxlZ2lhbnRhaXIuY29tghYqLmluMS5hbGxlZ2lhbnRhaXIuY29tghYqLmluMi5hbGxlZ2lh
+  bnRhaXIuY29tghYqLmluMy5hbGxlZ2lhbnRhaXIuY29tghYqLmluNC5hbGxlZ2lhbnRhaXIuY29t
+  ghYqLmluNS5hbGxlZ2lhbnRhaXIuY29tghYqLmluNi5hbGxlZ2lhbnRhaXIuY29tghYqLmluNy5h
+  bGxlZ2lhbnRhaXIuY29tghYqLmluOC5hbGxlZ2lhbnRhaXIuY29tghYqLmluOS5hbGxlZ2lhbnRh
+  aXIuY29tghYqLnV0MS5hbGxlZ2lhbnRhaXIuY29tghYqLnV0Mi5hbGxlZ2lhbnRhaXIuY29tghYq
+  LnV0My5hbGxlZ2lhbnRhaXIuY29tghYqLnV0NC5hbGxlZ2lhbnRhaXIuY29tghYqLnV0NS5hbGxl
+  Z2lhbnRhaXIuY29tghYqLnV0Ni5hbGxlZ2lhbnRhaXIuY29tghYqLnV0Ny5hbGxlZ2lhbnRhaXIu
+  Y29tghYqLnV0OC5hbGxlZ2lhbnRhaXIuY29tghYqLnV0OS5hbGxlZ2lhbnRhaXIuY29tghYqLnRy
+  MS5hbGxlZ2lhbnRhaXIuY29tghYqLnRyMi5hbGxlZ2lhbnRhaXIuY29tghYqLnRyMy5hbGxlZ2lh
+  bnRhaXIuY29tghYqLnRyNC5hbGxlZ2lhbnRhaXIuY29tghYqLnRyNS5hbGxlZ2lhbnRhaXIuY29t
+  ghYqLnRyNi5hbGxlZ2lhbnRhaXIuY29tghYqLnRyNy5hbGxlZ2lhbnRhaXIuY29tghYqLnRyOC5h
+  bGxlZ2lhbnRhaXIuY29tghYqLnRyOS5hbGxlZ2lhbnRhaXIuY29tghYqLnN0MS5hbGxlZ2lhbnRh
+  aXIuY29tghYqLnN0Mi5hbGxlZ2lhbnRhaXIuY29tghYqLnN0My5hbGxlZ2lhbnRhaXIuY29tghYq
+  LnN0NC5hbGxlZ2lhbnRhaXIuY29tghYqLnN0NS5hbGxlZ2lhbnRhaXIuY29tghYqLnN0Ni5hbGxl
+  Z2lhbnRhaXIuY29tghYqLnN0Ny5hbGxlZ2lhbnRhaXIuY29tghYqLnN0OC5hbGxlZ2lhbnRhaXIu
+  Y29tghYqLnN0OS5hbGxlZ2lhbnRhaXIuY29tghsqLmRldnNoYXJlLmFsbGVnaWFudGFpci5jb22C
+  GSouZGV2aW5mLmFsbGVnaWFudGFpci5jb20wDQYJKoZIhvcNAQEFBQADggEBACa5PDb/Rdx3W5Y3
+  GUHTRAOb/8arRP5Pimz/J6wMOXdqUiDsva3TW10KncXr5QU3rO/wM++C0wPNxsVzbUuXdsaeQxUP
+  CEL0Dxa+fI4sR/DkzYXl4STeyHR8wVXW+5cjzTHFBpB22uQTkxiZRAc91Ky2CcvSbP6SrmEJ5AUY
+  MOmFdEhxyblxyd43PHNW5SUHnRRTXEcqL9PDq783Lt9luGSsZTxRsegafqwKC2ERw+fnTc1JuazR
+  WthQgMi7q8BHedAvvTOno/3jcm9sL/TwerFzLbEQA7jPDe2f0qg7VCN0fU9kBKAYBnO9g0GSy+SO
+  1RLA8opH88OSzWW5luKpDqgABVguNTA5AAAEBTCCBAEwggLpoAMCAQICCQCs3lAgrbCPATANBgkq
+  hkiG9w0BAQUFADCBlTELMAkGA1UEBhMCVVMxDzANBgNVBAgMBk5ldmFkYTEWMBQGA1UECgwNQWxs
+  ZWdpYW50IEFpcjEUMBIGA1UECwwLRGV2ZWxvcG1lbnQxKDAmBgNVBAMMH3N2dXNzbGFwMTEudXRs
+  LmFsbGVnaWFudGFpci5jb20xHTAbBgkqhkiG9w0BCQEWDnJvb3RAbG9jYWxob3N0MCAXDTEzMDQy
+  OTIwNDUzM1oYDzIwNTMwNDE5MjA0NTMzWjCBlTELMAkGA1UEBhMCVVMxDzANBgNVBAgMBk5ldmFk
+  YTEWMBQGA1UECgwNQWxsZWdpYW50IEFpcjEUMBIGA1UECwwLRGV2ZWxvcG1lbnQxKDAmBgNVBAMM
+  H3N2dXNzbGFwMTEudXRsLmFsbGVnaWFudGFpci5jb20xHTAbBgkqhkiG9w0BCQEWDnJvb3RAbG9j
+  YWxob3N0MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA38J7uC33WUC67UihEAQ9zmFw
+  9P3pxtUhBb9Nq/KlIxHJp/hi54Pe79DKuTRc5TLRvD7DHgFcZn0uQ1qSM5QQmgDLix2qorilQSzE
+  XhsGxK5t4SjqhOLqm+rVhRZ0VSNbjtcgGjnGElLE+mxPuNHsP4/BnpBfFkx5n/AGgoAZdWWGRiFI
+  rkSiuyaUyY17w7cuG8eD9s9bCSk4+o1NS9R4TcY4ryM19ipLAPdrMu7Hbm2bPsTRn9NHDIPqnEwE
+  TZJnTEOdTyuxu99iIoVZTfUcmUMCQj24Rw7UK4Vcc71WmmduGTbcBiHWO+UjmPvK47CsbLeKhVr+
+  YKFR4Xv6/id4DQIDAQABo1AwTjAdBgNVHQ4EFgQUd1fP54sqrWRa1hh7ELe2uafcvgswHwYDVR0j
+  BBgwFoAUd1fP54sqrWRa1hh7ELe2uafcvgswDAYDVR0TBAUwAwEB/zANBgkqhkiG9w0BAQUFAAOC
+  AQEAtDMycVhd66BFY+RlJLHO0GG4qCcRabKd+cyaJuMUsvikoEbmjlFQ7kNa8Ty7BA7mbzlWgWn5
+  zWynBp2k8O1h9ASAbDaMRAOdin0Nbfi9X4K5GFn6Ukf+lqojAha2qDSnILLnuMIkVei91Ocf4r7X
+  xozIre328j1YN39INYl+U2DyCBqT32VckqAGuS6zm7xUKSewQ05ZaCv+qF59byxPx81W45hwwzbb
+  +al+2sLAPdgENTO05KYfyFUWWTT0Sp42SBQZXgVHpSe4G83/z9dokimPOYB0b+g8Vz5le2j8jXDK
+  aSgI41WIifEzksBHSUxJ5Vi8BEaxlpsIlvy29zI39KfVMIFZ+nyjzvusfsfgrnOFvfFd
+
+# JBoss Standalone users
+jboss_application_users_properties: |
+  custcomsuser=7ae2e2b6d27fa0d531f286895bd59499
+  fltfollowuser=5ec06857cea148c27582739d81d44245
+  symfony=9bda7f8da84e98bc8caaab4992e81659
+  discexportuser=e7379151cf00caafae556487c8136fa2
+  jmxuser=5c626d96e33ed2495b20e06975fc17e6
+
+# JBoss Standalone roles
+jboss_application_roles_properties: |
+  custcomsuser=CustComsSender
+  fltfollowuser=guest
+  symfony=guest
+  discexportuser=user
